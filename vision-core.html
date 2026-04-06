@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V.I.S.I.O.N Core — Desktop Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --red: #ff2600;
+    --white: #f0ece4;
+    --off-white: #c8c2b8;
+    --dark: #0a0a0a;
+    --grain-opacity: 0.045;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--dark); color: var(--white); font-family: 'Space Mono', monospace; overflow-x: hidden; cursor: crosshair; }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: var(--grain-opacity);
+    animation: grain 0.5s steps(1) infinite;
+  }
+  @keyframes grain {
+    0%,100%{transform:translate(0,0)} 10%{transform:translate(-2%,-3%)} 20%{transform:translate(3%,2%)}
+    30%{transform:translate(-1%,4%)} 40%{transform:translate(4%,-1%)} 50%{transform:translate(-3%,3%)}
+    60%{transform:translate(2%,-4%)} 70%{transform:translate(-4%,1%)} 80%{transform:translate(1%,3%)} 90%{transform:translate(3%,-2%)}
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 1.6rem 3rem; mix-blend-mode: difference; }
+  .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.3em; color: var(--white); text-decoration: none; }
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--off-white); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--red); }
+
+  /* ── HERO ── */
+  .core-hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12rem 3rem 6rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Red vignette from right */
+  .core-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 55% 70% at 85% 45%, rgba(255,38,0,0.08) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  /* Scan lines */
+  .scan-line { position: absolute; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,100,0,0.3), transparent); animation: scan 5s linear infinite; z-index: 0; }
+  @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+  .core-hero-content { position: relative; z-index: 2; }
+
+  .core-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.2s;
+  }
+
+  .badge-pill {
+    background: var(--red);
+    padding: 0.3rem 0.9rem;
+    font-size: 0.48rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--white);
+  }
+
+  .badge-sub {
+    font-size: 0.5rem;
+    letter-spacing: 0.2em;
+    color: var(--off-white);
+    text-transform: uppercase;
+  }
+
+  .core-hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 13vw, 13rem);
+    line-height: 0.86;
+    color: var(--white);
+    opacity: 0;
+    animation: fadeUp 0.9s ease forwards 0.4s;
+  }
+
+  .core-hero h1 .outline {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,38,0,0.4);
+  }
+
+  .core-hero-desc {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    margin-top: 3.5rem;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards 0.7s;
+  }
+
+  .core-tagline {
+    font-size: 0.62rem;
+    line-height: 2;
+    color: var(--off-white);
+  }
+
+  .core-hero-pricing {
+    border-left: 1px solid rgba(255,38,0,0.3);
+    padding-left: 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .price-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 7rem;
+    color: var(--red);
+    line-height: 1;
+  }
+
+  .price-detail {
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--off-white);
+    line-height: 1.7;
+  }
+
+  .hero-buy-btn {
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    background: var(--red);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    cursor: crosshair;
+    align-self: flex-start;
+  }
+  .hero-buy-btn:hover { background: #e02200; transform: translateY(-1px); }
+
+  /* ── TERMINAL DEMO ── */
+  .terminal-section {
+    padding: 7rem 3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .terminal {
+    border: 1px solid rgba(255,38,0,0.2);
+    background: rgba(255,38,0,0.02);
+    font-family: 'Space Mono', monospace;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .terminal::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--red);
+  }
+
+  .terminal-bar {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgba(255,38,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255,38,0,0.04);
+  }
+
+  .terminal-title {
+    font-size: 0.48rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--red);
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 5px;
+  }
+  .terminal-dots span { width: 8px; height: 8px; border-radius: 50%; }
+  .terminal-dots span:nth-child(1) { background: rgba(255,255,255,0.1); }
+  .terminal-dots span:nth-child(2) { background: rgba(255,255,255,0.1); }
+  .terminal-dots span:nth-child(3) { background: rgba(255,38,0,0.6); }
+
+  .terminal-body {
+    padding: 1.5rem;
+    min-height: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .t-line {
+    font-size: 0.58rem;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  .t-line.prompt { color: var(--red); }
+  .t-line.system { color: rgba(200,194,184,0.5); font-size: 0.5rem; }
+  .t-line.action { color: var(--white); }
+  .t-line.success { color: #00cc66; }
+  .t-line.warn { color: #ffaa00; }
+  .t-line.cursor::after { content: '█'; animation: blink 1s step-end infinite; color: var(--red); }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .t-line:nth-child(1)  { animation-delay: 0.1s; }
+  .t-line:nth-child(2)  { animation-delay: 0.4s; }
+  .t-line:nth-child(3)  { animation-delay: 0.8s; }
+  .t-line:nth-child(4)  { animation-delay: 1.3s; }
+  .t-line:nth-child(5)  { animation-delay: 1.7s; }
+  .t-line:nth-child(6)  { animation-delay: 2.2s; }
+  .t-line:nth-child(7)  { animation-delay: 2.6s; }
+  .t-line:nth-child(8)  { animation-delay: 3.0s; }
+  .t-line:nth-child(9)  { animation-delay: 3.5s; }
+  .t-line:nth-child(10) { animation-delay: 4.0s; }
+  .t-line:nth-child(11) { animation-delay: 4.5s; }
+  .t-line:nth-child(12) { animation-delay: 5.0s; }
+
+  .terminal-info {}
+  .section-label { font-size: 0.55rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--red); margin-bottom: 1.5rem; }
+
+  .terminal-heading {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 3vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+  }
+
+  .terminal-body-text {
+    font-size: 0.6rem;
+    line-height: 2;
+    color: var(--off-white);
+  }
+
+  /* ── CAPABILITIES ── */
+  .core-caps {
+    padding: 7rem 3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .core-caps-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 5rem;
+  }
+
+  .core-caps-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 6vw, 6rem);
+    line-height: 0.9;
+    color: var(--white);
+  }
+  .core-caps-title em { display: block; color: var(--red); font-style: normal; }
+
+  .core-caps-sub {
+    font-size: 0.6rem;
+    color: var(--off-white);
+    line-height: 1.9;
+    max-width: 280px;
+    text-align: right;
+  }
+
+  .caps-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .cap-item {
+    padding: 2.5rem 2.5rem;
+    border-right: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .cap-item:nth-child(2n) { border-right: none; }
+  .cap-item:nth-last-child(-n+2) { border-bottom: none; }
+  .cap-item:hover { background: rgba(255,38,0,0.02); }
+  .cap-item::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform 0.4s;
+  }
+  .cap-item:hover::before { transform: scaleX(1); }
+
+  .cap-item-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: rgba(255,38,0,0.12);
+    line-height: 1;
+    margin-bottom: 1rem;
+  }
+
+  .cap-item-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.02em;
+  }
+
+  .cap-item-desc {
+    font-size: 0.58rem;
+    color: var(--off-white);
+    line-height: 1.9;
+  }
+
+  /* ── GUARDRAILS ── */
+  .guardrails {
+    padding: 6rem 3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,38,0,0.02);
+  }
+
+  .guardrails-inner {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 6rem;
+    align-items: start;
+  }
+
+  .guardrails-heading {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    color: var(--white);
+    line-height: 1;
+  }
+  .guardrails-heading em { color: var(--red); font-style: normal; display: block; }
+
+  .guardrails-text {
+    font-size: 0.6rem;
+    color: var(--off-white);
+    line-height: 2;
+    margin-bottom: 2rem;
+  }
+
+  .guardrails-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .guardrail-item {
+    padding: 1.2rem;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .guardrail-item .label {
+    font-size: 0.52rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 0.6rem;
+  }
+
+  .guardrail-item p {
+    font-size: 0.56rem;
+    color: var(--off-white);
+    line-height: 1.8;
+  }
+
+  /* ── PRICING BLOCK ── */
+  #pricing {
+    padding: 7rem 3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+  }
+
+  .pricing-eyebrow { font-size: 0.55rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--red); margin-bottom: 2rem; }
+
+  .pricing-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 8rem);
+    color: var(--white);
+    line-height: 0.9;
+    margin-bottom: 1rem;
+  }
+
+  .pricing-sub { font-size: 0.6rem; color: var(--off-white); line-height: 1.9; margin-bottom: 5rem; }
+
+  .pricing-card {
+    max-width: 500px;
+    margin: 0 auto;
+    border: 1px solid rgba(255,38,0,0.3);
+    padding: 3.5rem;
+    position: relative;
+  }
+
+  .pricing-card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 10%; right: 10%;
+    height: 3px;
+    background: var(--red);
+  }
+
+  .pricing-card .big-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 9rem;
+    color: var(--white);
+    line-height: 0.9;
+  }
+  .pricing-card .big-price span { color: var(--red); }
+
+  .pricing-card .per { font-size: 0.55rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--off-white); margin-bottom: 2.5rem; }
+
+  .pricing-features-mini {
+    list-style: none;
+    margin-bottom: 2.5rem;
+    text-align: left;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem 2rem;
+  }
+
+  .pricing-features-mini li {
+    font-size: 0.56rem;
+    color: var(--off-white);
+    padding-left: 1rem;
+    position: relative;
+    line-height: 1.6;
+  }
+  .pricing-features-mini li::before { content: '·'; position: absolute; left: 0; color: var(--red); }
+
+  .buy-now-btn {
+    display: block;
+    width: 100%;
+    padding: 1.1rem 2rem;
+    background: var(--red);
+    color: var(--white);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    cursor: crosshair;
+    border: none;
+    margin-bottom: 1rem;
+  }
+  .buy-now-btn:hover { background: #e02200; transform: translateY(-1px); }
+
+  .pricing-note { font-size: 0.5rem; color: rgba(200,194,184,0.4); letter-spacing: 0.1em; }
+
+  /* ── OS BADGES ── */
+  .os-badges {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .os-badge {
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 0.6rem 1.5rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--off-white);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .os-badge span { color: rgba(255,255,255,0.3); font-size: 0.45rem; }
+
+  /* Status / cursor / footer */
+  .status-pill { position: fixed; bottom: 2rem; right: 2rem; display: flex; align-items: center; gap: 0.6rem; background: rgba(10,10,10,0.8); border: 1px solid rgba(255,255,255,0.08); padding: 0.5rem 1rem; font-size: 0.5rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--off-white); z-index: 999; backdrop-filter: blur(8px); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: blink 2s ease-in-out infinite; }
+  .cursor-dot { position: fixed; width: 6px; height: 6px; background: var(--red); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); transition: transform 0.1s; }
+  footer { border-top: 1px solid rgba(255,255,255,0.06); padding: 3rem; display: flex; justify-content: space-between; align-items: center; }
+  .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.3em; color: var(--white); }
+  .footer-tagline { font-size: 0.55rem; letter-spacing: 0.2em; color: rgba(200,194,184,0.4); text-transform: uppercase; }
+  .footer-credits { font-size: 0.52rem; color: rgba(200,194,184,0.3); text-align: right; line-height: 1.8; }
+
+  @media (max-width: 768px) {
+    nav { padding: 1.2rem 1.5rem; } .nav-links { display: none; }
+    .core-hero { padding: 10rem 1.5rem 5rem; }
+    .core-hero-desc { grid-template-columns: 1fr; gap: 2rem; }
+    .core-hero-pricing { border-left: none; padding-left: 0; border-top: 1px solid rgba(255,38,0,0.2); padding-top: 2rem; }
+    .terminal-section { grid-template-columns: 1fr; gap: 3rem; padding: 5rem 1.5rem; }
+    .core-caps { padding: 5rem 1.5rem; }
+    .caps-list { grid-template-columns: 1fr; }
+    .cap-item:nth-child(2n) { border-right: none; }
+    .cap-item { border-right: none !important; }
+    .core-caps-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .core-caps-sub { text-align: left; }
+    .guardrails { padding: 4rem 1.5rem; }
+    .guardrails-inner { grid-template-columns: 1fr; gap: 2rem; }
+    .guardrails-grid { grid-template-columns: 1fr; }
+    #pricing { padding: 5rem 1.5rem; }
+    .pricing-features-mini { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+    .footer-credits { text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="status-pill"><div class="status-dot"></div>CORE — PREMIUM</div>
+
+<nav>
+  <a class="nav-logo" href="index.html">V.I.S.I.O.N</a>
+  <ul class="nav-links">
+    <li><a href="index.html#about">About</a></li>
+    <li><a href="models.html">Models</a></li>
+    <li><a href="vision-web.html">Web</a></li>
+    <li><a href="vision-core.html" style="color:var(--red)">Core</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="core-hero">
+  <div class="scan-line"></div>
+  <div class="core-hero-content">
+    <div class="core-badge">
+      <div class="badge-pill">Premium</div>
+      <span class="badge-sub">Desktop Agent · Full System Access</span>
+    </div>
+
+    <h1>
+      V.I.S.I.O.N
+      <span class="outline">CORE</span>
+    </h1>
+
+    <div class="core-hero-desc">
+      <p class="core-tagline">
+        This is not a chatbot.<br><br>
+        V.I.S.I.O.N Core is a local agent that runs on your machine and acts on your commands — autonomously. Open folders. Launch apps. Manage files. Execute tasks. All without you touching a single button.<br><br>
+        You speak. It moves.
+      </p>
+      <div class="core-hero-pricing">
+        <div class="price-row">
+          <div class="price-main">$19</div>
+          <div class="price-detail">per month<br>cancel anytime<br>instant download</div>
+        </div>
+        <a href="#pricing" class="hero-buy-btn">Get Core Now →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TERMINAL DEMO -->
+<section class="terminal-section">
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="terminal-title">V.I.S.I.O.N CORE — AGENT RUNTIME v2.4.1</span>
+      <div class="terminal-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="terminal-body">
+      <div class="t-line system">// Agent initialized. System access granted.</div>
+      <div class="t-line system">// Monitoring input channel...</div>
+      <div class="t-line prompt">&gt; Create a new folder called "Project_Alpha" on the Desktop</div>
+      <div class="t-line action">— Parsing command: CREATE_DIRECTORY</div>
+      <div class="t-line action">— Target path: /Users/hibah/Desktop/Project_Alpha</div>
+      <div class="t-line success">✓ Folder created: Project_Alpha</div>
+      <div class="t-line prompt">&gt; Open VS Code and load that folder</div>
+      <div class="t-line action">— Locating application: Visual Studio Code</div>
+      <div class="t-line action">— Executing: code /Users/hibah/Desktop/Project_Alpha</div>
+      <div class="t-line success">✓ VS Code launched with Project_Alpha workspace</div>
+      <div class="t-line prompt">&gt; _<span style="animation:blink 1s step-end infinite;color:var(--red)"></span></div>
+      <div class="t-line cursor" style="color:rgba(200,194,184,0.3);font-size:0.5rem;">// Awaiting next command...</div>
+    </div>
+  </div>
+
+  <div class="terminal-info">
+    <p class="section-label">What It Does</p>
+    <h2 class="terminal-heading">You Say It.<br>Core Does It.</h2>
+    <p class="terminal-body-text">
+      V.I.S.I.O.N Core interprets natural language commands and translates them into real operating system actions — instantly, accurately, without confirmation dialogs.<br><br>
+      Create and organize folders. Launch and control applications. Move files across directories. Run scripts. Everything you'd do with a mouse and keyboard, done with a sentence.
+    </p>
+  </div>
+</section>
+
+<!-- CAPABILITIES -->
+<section class="core-caps">
+  <div class="core-caps-header">
+    <h2 class="core-caps-title">
+      What Core<br>
+      <em>Controls</em>
+    </h2>
+    <p class="core-caps-sub">Eight autonomous systems.<br>One agent with full system access.<br>Built with hard limits that protect your machine.</p>
+  </div>
+
+  <div class="caps-list">
+    <div class="cap-item">
+      <div class="cap-item-num">01</div>
+      <div class="cap-item-name">File System Control</div>
+      <p class="cap-item-desc">Create, rename, move, copy, and delete files and folders anywhere on your machine. Say the path — done.</p>
+    </div>
+    <div class="cap-item">
+      <div class="cap-item-num">02</div>
+      <div class="cap-item-name">Application Launcher</div>
+      <p class="cap-item-desc">Opens any installed application by name. Passes arguments, loads workspaces, sets window state.</p>
+    </div>
+    <div class="cap-item">
+      <div class="cap-item-num">03</div>
+      <div class="cap-item-name">Persistent Memory</div>
+      <p class="cap-item-desc">Remembers your preferences, project structures, and history across every session. Gets smarter the more you use it.</p>
+    </div>
+    <div class="cap-item">
+      <div class="cap-item-num">04</div>
+      <div class="cap-item-name">Reasoning Engine</div>
+      <p class="cap-item-desc">Full V.I.S.I.O.N Web intelligence built in. Ask questions, analyze documents, get structured answers — all locally.</p>
+    </div>
+    <div class="cap-item">
+      <div class="cap-item-num">05</div>
+      <div class="cap-item-name">Safe Execution Layer</div>
+      <p class="cap-item-desc">Every action is validated before execution. Irreversible or potentially harmful operations require explicit confirmation.</p>
+    </div>
+    <div class="cap-item">
+      <div class="cap-item-num">06</div>
+      <div class="cap-item-name">Automation Chains</div>
+      <p class="cap-item-desc">String multiple actions together in a single command. "Archive last month's files and move them to backup" — done in one pass.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GUARDRAILS -->
+<section class="guardrails">
+  <div class="guardrails-inner">
+    <div>
+      <p class="section-label">Safety</p>
+      <h2 class="guardrails-heading">
+        Power With<br>
+        <em>Limits</em>
+      </h2>
+    </div>
+    <div>
+      <p class="guardrails-text">
+        V.I.S.I.O.N Core has full system access — and knows exactly where to stop. The agent is trained to refuse any command that could cause irreversible damage to your operating system, corrupt critical files, or execute malicious sequences. These aren't settings you can override. They're baked in.
+      </p>
+      <div class="guardrails-grid">
+        <div class="guardrail-item">
+          <div class="label">Protected</div>
+          <p>System files and OS directories are read-only. Core will never touch /System, /Windows, or core registry entries.</p>
+        </div>
+        <div class="guardrail-item">
+          <div class="label">Confirmed</div>
+          <p>Bulk deletions (5+ files), overwrites, and format operations require a second confirmation before execution.</p>
+        </div>
+        <div class="guardrail-item">
+          <div class="label">Logged</div>
+          <p>Every action is logged locally. Full audit trail of what was done, when, and what the triggering command was.</p>
+        </div>
+        <div class="guardrail-item">
+          <div class="label">Sandboxed</div>
+          <p>Network access is off by default. Core never phones home, sends data externally, or accesses the internet without permission.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <p class="pricing-eyebrow">003 — Get Core</p>
+  <h2 class="pricing-title">One Price.<br>Full Control.</h2>
+  <p class="pricing-sub">No tiers. No feature gates. One subscription unlocks everything.</p>
+
+  <div class="pricing-card">
+    <div class="big-price">$19<span>/mo</span></div>
+    <p class="per">Billed monthly · Cancel anytime · Instant download</p>
+    <ul class="pricing-features-mini">
+      <li>Desktop agent download</li>
+      <li>File system control</li>
+      <li>App launcher access</li>
+      <li>Persistent memory</li>
+      <li>Full reasoning engine</li>
+      <li>Automation chains</li>
+      <li>Safe execution layer</li>
+      <li>Priority support</li>
+    </ul>
+    <a href="#" class="buy-now-btn" onclick="handlePurchase(event)">Subscribe & Download →</a>
+    <p class="pricing-note">Secure checkout · 7-day money back guarantee · No lock-in</p>
+  </div>
+
+  <div class="os-badges">
+    <div class="os-badge">macOS <span>12+</span></div>
+    <div class="os-badge">Windows <span>10/11</span></div>
+    <div class="os-badge">Linux <span>Ubuntu 20+</span></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">V.I.S.I.O.N</div>
+  <div class="footer-tagline">Perceive. Analyze. Act.</div>
+  <div class="footer-credits">Built by hand — no templates<br>AI Agent by HIBAH FAHEEM<br>© 2026 V.I.S.I.O.N</div>
+</footer>
+
+<script>
+  const dot = document.getElementById('cursorDot');
+  document.addEventListener('mousemove', e => { dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px'; });
+  document.querySelectorAll('a, button, .cap-item').forEach(el => {
+    el.addEventListener('mouseenter', () => dot.style.transform = 'translate(-50%, -50%) scale(3)');
+    el.addEventListener('mouseleave', () => dot.style.transform = 'translate(-50%, -50%) scale(1)');
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.style.opacity = '1'; entry.target.style.transform = 'translateY(0)'; }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.cap-item, .pricing-card, .guardrail-item').forEach((el, i) => {
+    el.style.opacity = '0'; el.style.transform = 'translateY(24px)';
+    el.style.transition = 'opacity 0.7s ease, transform 0.7s ease';
+    el.style.transitionDelay = `${i * 0.07}s`;
+    observer.observe(el);
+  });
+
+  function handlePurchase(e) {
+    e.preventDefault();
+    const btn = e.target;
+    btn.textContent = 'Processing...';
+    btn.style.background = '#555';
+    setTimeout(() => {
+      btn.textContent = 'Redirect to Checkout →';
+      btn.style.background = 'var(--red)';
+    }, 1500);
+  }
+</script>
+</body>
+</html>
+<!-- Created by HIBAH FAHEEM — Do not claim as your own. -->
